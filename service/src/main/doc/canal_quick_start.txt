@@ -1,0 +1,36 @@
+github
+https://github.com/alibaba/canal
+
+原理相对比较简单：
+1. canal模拟mysql slave的交互协议，伪装自己为mysql slave，向mysql master发送dump协议
+2. mysql master收到dump请求，开始推送binary log给slave(也就是canal)
+3. canal解析binary log对象(原始为byte流)
+
+
+a. canal的原理是基于mysql binlog技术，所以这里一定需要开启mysql的binlog写入功能，建议配置binlog模式为row.
+[mysqld]
+log-bin=mysql-bin #添加这一行就ok
+binlog-format=ROW #选择row模式
+server_id=1 #配置mysql replaction需要定义，不能和canal的slaveId重复
+
+
+b. canal的原理是模拟自己为mysql slave，所以这里一定需要做为mysql slave的相关权限.
+CREATE USER canal IDENTIFIED BY 'canal';
+GRANT SELECT, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'canal'@'%';
+-- GRANT ALL PRIVILEGES ON *.* TO 'canal'@'%' ;
+FLUSH PRIVILEGES;
+
+启动
+bin/startup.sh
+
+canal test
+=======================================================
+use test;
+CREATE TABLE `xdual` (
+   `ID` int(11) NOT NULL AUTO_INCREMENT,
+   `X` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   PRIMARY KEY (`ID`)
+ ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 ;
+
+
+ insert into xdual(id,x) values(null,now());
